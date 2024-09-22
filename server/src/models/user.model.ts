@@ -51,10 +51,10 @@ const userSchema = new mongoose.Schema<IUser>(
     },
     website: { type: String, default: "" },
     faceBookId: { type: String, default: "" },
-    followers: [{ type: mongoose.Types.ObjectId, ref: "user" }],
-    following: [{ type: mongoose.Types.ObjectId, ref: "user" }],
-    post: [{ type: mongoose.Types.ObjectId, ref: "post" }],
-    saved: [{ type: mongoose.Types.ObjectId, ref: "post" }],
+    followers: [{ type: mongoose.Types.ObjectId, ref: "User" }],
+    following: [{ type: mongoose.Types.ObjectId, ref: "User" }],
+    post: [{ type: mongoose.Types.ObjectId, ref: "Post" }],
+    saved: [{ type: mongoose.Types.ObjectId, ref: "Post" }],
     passwordResetExpires: Number,
     passwordResetToken: String,
     token: {
@@ -65,7 +65,7 @@ const userSchema = new mongoose.Schema<IUser>(
   { timestamps: true }
 );
 
-userSchema.pre("save", async function (this: IUser, next) {
+userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) {
     next();
   }
@@ -75,24 +75,28 @@ userSchema.pre("save", async function (this: IUser, next) {
   next();
 });
 
-userSchema.methods.matchPassword = async function (
-  this: IUser,
+userSchema.methods.isPasswordMatch = async function (
   enteredPassword: string
 ): Promise<boolean> {
-  return await bcrypt.compare(enteredPassword, this.password);
+  console.log(this);
+
+  console.log(enteredPassword, this.password);
+  const isMatch = await bcrypt.compare(enteredPassword, this.password);
+  console.log(isMatch);
+
+  return isMatch;
 };
 
-userSchema.methods.createPasswordResetToken = async function (
-  this: IUser
-): Promise<string> {
-  const resetToken = crypto.randomBytes(32).toString("hex");
-  this.passwordResetToken = crypto
-    .createHash("sha256")
-    .update(resetToken)
-    .digest("hex");
-  this.passwordResetExpires = Date.now() + 30 * 60 * 1000;
-  return resetToken;
-};
+userSchema.methods.createPasswordResetToken =
+  async function (): Promise<string> {
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    this.passwordResetToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex");
+    this.passwordResetExpires = Date.now() + 30 * 60 * 1000;
+    return resetToken;
+  };
 
 const User = mongoose.model<IUser>("User", userSchema);
 
